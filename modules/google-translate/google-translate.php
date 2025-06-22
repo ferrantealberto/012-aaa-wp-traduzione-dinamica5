@@ -1,12 +1,7 @@
 <?php
 /**
- * Module Name: Google Translate
- * Description: Provider di traduzione Google Translate API
- * Version: 1.0.0
- * Author: Dynamic Translator
- * Type: translation_provider
- * Class: DPT_Google_Translate_Provider
- * Requires: 
+ * Modulo Google Translate
+ * File: modules/google-translate/google-translate.php
  */
 
 if (!defined('ABSPATH')) {
@@ -23,21 +18,16 @@ class DPT_Google_Translate_Provider implements DPT_Translation_Provider_Interfac
     public function __construct() {
         $this->api_key = dpt_get_option('google_api_key', '');
         
-        // Registra il modulo dopo che il sistema è pronto
-        add_action('dpt_modules_loaded', array($this, 'register_module'), 5);
+        // Registra il modulo
+        add_action('init', array($this, 'register_module'));
     }
     
     /**
      * Registra il modulo nel sistema
      */
-    public function register_module($module_manager) {
-        $module_manager->register_module('google_translate', array(
-            'name' => __('Google Translate', 'dynamic-translator'),
-            'description' => __('Provider di traduzione Google Translate API', 'dynamic-translator'),
-            'version' => '1.0.0',
-            'class' => get_class($this),
-            'instance' => $this
-        ));
+    public function register_module() {
+        $plugin = DynamicPageTranslator::get_instance();
+        $plugin->register_module('google_translate', $this);
     }
     
     /**

@@ -1,14 +1,5 @@
 <?php
 /**
- * Module Name: OpenRouter Translate
- * Description: Modulo di traduzione AI tramite OpenRouter
- * Version: 1.0.0
- * Author: Dynamic Translator
- * Type: translate
- * Class: DPT_OpenRouter_Translate_Provider
- */
-
- /**
  * Modulo OpenRouter AI Translate - VERSIONE COMPLETA E CORRETTA
  * File: modules/openrouter-translate/openrouter-translate.php
  */
@@ -92,7 +83,7 @@ class DPT_OpenRouter_Translate_Provider implements DPT_Translation_Provider_Inte
         try {
             $plugin = DynamicPageTranslator::get_instance();
             if ($plugin) {
-                $plugin->register_module('openrouter-translate', $this);
+                $plugin->register_module('openrouter_translate', $this);
             }
         } catch (Exception $e) {
             error_log('DPT OpenRouter Module Registration Error: ' . $e->getMessage());

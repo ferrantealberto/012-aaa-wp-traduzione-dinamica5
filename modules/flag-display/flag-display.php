@@ -1,12 +1,7 @@
 <?php
 /**
- * Module Name: Flag Display
- * Description: Gestisce la visualizzazione delle bandiere per la selezione lingua
- * Version: 1.0.0
- * Author: Dynamic Translator
- * Type: display
- * Class: DPT_Flag_Display_Module
- * Requires: 
+ * Modulo Flag Display
+ * File: modules/flag-display/flag-display.php
  */
 
 if (!defined('ABSPATH')) {
@@ -80,14 +75,10 @@ class DPT_Flag_Display_Module {
     /**
      * Registra il modulo nel sistema principale
      */
-    public function register_module($module_manager) {
-        $module_manager->register_module('flag-display', array(
-            'name' => __('Flag Display', 'dynamic-translator'),
-            'description' => __('Gestisce la visualizzazione delle bandiere per la selezione lingua', 'dynamic-translator'),
-            'version' => '1.0.0',
-            'class' => get_class($this),
-            'instance' => $this
-        ));
+    public function register_module() {
+        // Ora possiamo chiamare get_instance() in sicurezza
+        $plugin = DynamicPageTranslator::get_instance();
+        $plugin->register_module('flag_display', $this);
     }
     
     /**

@@ -26,7 +26,6 @@ class DynamicPageTranslator {
     private $modules = array();
     private $cache_handler;
     private $api_handler;
-    private $module_manager;
     private $is_initialized = false; // FLAG per evitare ricorsione
     
     public static function get_instance() {
@@ -71,14 +70,7 @@ class DynamicPageTranslator {
         require_once DPT_PLUGIN_PATH . 'includes/class-api-handler.php';
         require_once DPT_PLUGIN_PATH . 'includes/class-admin-interface.php';
         require_once DPT_PLUGIN_PATH . 'includes/class-frontend-display.php';
-        require_once DPT_PLUGIN_PATH . 'includes/class-debug-helper.php';
         require_once DPT_PLUGIN_PATH . 'includes/class-module-manager.php';
-        
-        // Inizializza il debug helper prima del module manager
-        DPT_Debug_Helper::get_instance();
-        
-        // Inizializza il gestore moduli
-        $this->module_manager = new DPT_Module_Manager();
     }
     
     /**
@@ -89,12 +81,34 @@ class DynamicPageTranslator {
         $this->cache_handler = new DPT_Cache_Handler();
         $this->api_handler = new DPT_API_Handler();
         
-        // Ottieni moduli attivi dal gestore moduli
-        if (isset($this->module_manager)) {
-            $this->modules = $this->module_manager->get_active_modules();
-        }
+        // Inizializza il gestore moduli
+        $module_manager = new DPT_Module_Manager();
+        $this->modules = $module_manager->get_active_modules();
+        
+        // Carica moduli base SENZA auto-registrazione
+        $this->load_base_modules();
+        
+        // Hook per permettere l'aggiunta di moduli personalizzati
+        do_action('dpt_modules_loaded', $this->modules);
     }
     
+    /**
+     * Carica moduli base senza auto-registrazione
+     */
+    private function load_base_modules() {
+        $base_modules = array(
+            'google-translate/google-translate.php',
+            'openrouter-translate/openrouter-translate.php',
+            'flag-display/flag-display.php'
+        );
+        
+        foreach ($base_modules as $module_file) {
+            $module_path = DPT_PLUGIN_PATH . 'modules/' . $module_file;
+            if (file_exists($module_path)) {
+                require_once $module_path;
+            }
+        }
+    }
     
     /**
      * Inizializzazione del plugin
@@ -302,13 +316,6 @@ class DynamicPageTranslator {
      */
     public function get_modules() {
         return $this->modules;
-    }
-
-    /**
-     * Ottiene istanza module manager
-     */
-    public function get_module_manager() {
-        return $this->module_manager;
     }
 }
 

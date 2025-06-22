@@ -14,76 +14,43 @@ class DPT_Module_Manager {
     private $active_modules = array();
     private $modules_path;
     private $is_loading = false; // Flag per evitare ricorsione
-    private $debug_helper;
     
     public function __construct() {
         $this->modules_path = DPT_PLUGIN_PATH . 'modules/';
-        $this->debug_helper = DPT_Debug_Helper::get_instance();
-        $this->debug_helper->log('Module Manager initialized');
         $this->init_hooks();
+        $this->load_modules();
     }
     
     /**
      * Inizializza gli hook
      */
     private function init_hooks() {
-        // Carica e attiva i moduli in sequenza
-        add_action('plugins_loaded', array($this, 'load_modules'), 5);
-        add_action('plugins_loaded', array($this, 'register_external_modules'), 10);
-        add_action('plugins_loaded', array($this, 'activate_default_modules'), 15);
-        
-        // Gestione azioni admin
+        // Usa priorità più alta per attivarsi DOPO che i moduli sono caricati
+        add_action('dpt_modules_loaded', array($this, 'activate_default_modules'), 20);
         add_action('admin_init', array($this, 'handle_module_actions'));
         
-        // Debug info in admin
-        if ($this->debug_helper->is_debug()) {
-            add_action('admin_notices', array($this->debug_helper, 'display_module_status'));
-        }
-    }
-
-    /**
-     * Registra moduli esterni
-     */
-    public function register_external_modules() {
+        // Hook per permettere registrazione moduli esterni
         do_action('dpt_register_modules', $this);
     }
     
     /**
      * Carica tutti i moduli disponibili
      */
-    public function load_modules() {
+    private function load_modules() {
         if ($this->is_loading) {
-            $this->debug_helper->log('load_modules skipped due to recursion');
             return; // Evita ricorsione
         }
         
         $this->is_loading = true;
-        $this->debug_helper->log('Starting to load modules');
         
-        try {
-            // Carica l'interfaccia del provider di traduzione
-            require_once DPT_PLUGIN_PATH . 'includes/interface-translation-provider.php';
-            
-            // Carica moduli interni
-            $this->discover_internal_modules();
-            $this->debug_helper->log('Internal modules discovered: ' . implode(', ', array_keys($this->modules)));
-            
-            // Carica moduli esterni
-            $this->discover_external_modules();
-            $this->debug_helper->log('External modules discovered: ' . implode(', ', array_diff(array_keys($this->modules), array_keys($this->modules))));
-            
-            // Carica moduli attivi
-            $this->load_active_modules();
-            $this->debug_helper->log('Active modules loaded: ' . implode(', ', array_keys($this->active_modules)));
-            
-            // Trigger per moduli caricati
-            do_action('dpt_modules_loaded', $this);
-            $this->debug_helper->log('dpt_modules_loaded action triggered');
-            
-        } catch (Exception $e) {
-            error_log('Dynamic Translator - Errore caricamento moduli: ' . $e->getMessage());
-            $this->debug_helper->log('Error loading modules: ' . $e->getMessage(), 'error');
-        }
+        // Carica moduli interni
+        $this->discover_internal_modules();
+        
+        // Carica moduli esterni
+        $this->discover_external_modules();
+        
+        // Carica moduli attivi
+        $this->load_active_modules();
         
         $this->is_loading = false;
     }
@@ -92,67 +59,63 @@ class DPT_Module_Manager {
      * Scopre moduli interni
      */
     private function discover_internal_modules() {
-        $this->debug_helper->log('Starting internal module discovery');
-        
-        // Scan modules directory
-        $module_dirs = glob($this->modules_path . '*', GLOB_ONLYDIR);
-        
-        foreach ($module_dirs as $dir) {
-            $module_id = basename($dir);
-            $main_file = $dir . '/' . $module_id . '.php';
-            
-            if (file_exists($main_file)) {
-                // Load file to get module info
-                $content = file_get_contents($main_file);
-                
-                // Parse module info from file header comments
-                $module_info = $this->parse_module_header($content);
-                
-                if ($module_info) {
-                    $module_info['file'] = str_replace($this->modules_path, '', $main_file);
-                    $module_info['internal'] = true;
-                    $this->modules[$module_id] = $module_info;
-                    $this->debug_helper->log("Discovered internal module: $module_id");
-                } else {
-                    $this->debug_helper->log("Failed to parse module info for: $module_id", 'error');
-                }
-            }
-        }
-        
-        $this->debug_helper->log('Internal module discovery complete. Found: ' . count($this->modules) . ' modules');
-    }
-    
-    /**
-     * Parse module header comments for info
-     */
-    private function parse_module_header($content) {
-        $default_headers = array(
-            'name' => 'Module Name',
-            'description' => 'Description',
-            'version' => 'Version',
-            'author' => 'Author',
-            'type' => 'Type',
-            'class' => 'Class',
-            'requires' => 'Requires'
+        $internal_modules = array(
+            'google-translate' => array(
+                'name' => __('Google Translate', 'dynamic-translator'),
+                'description' => __('Provider di traduzione Google Translate API', 'dynamic-translator'),
+                'version' => '1.0.0',
+                'author' => 'Dynamic Translator',
+                'type' => 'translation_provider',
+                'file' => 'google-translate/google-translate.php',
+                'class' => 'DPT_Google_Translate_Provider',
+                'requires' => array(),
+                'internal' => true,
+                'icon' => 'google.svg'
+            ),
+            'openrouter-translate' => array(
+                'name' => __('OpenRouter AI', 'dynamic-translator'),
+                'description' => __('Provider di traduzione usando modelli AI tramite OpenRouter', 'dynamic-translator'),
+                'version' => '1.0.0',
+                'author' => 'Dynamic Translator',
+                'type' => 'translation_provider',
+                'file' => 'openrouter-translate/openrouter-translate.php',
+                'class' => 'DPT_OpenRouter_Translate_Provider',
+                'requires' => array(),
+                'internal' => true,
+                'icon' => 'openrouter.svg'
+            ),
+            'flag-display' => array(
+                'name' => __('Flag Display', 'dynamic-translator'),
+                'description' => __('Gestisce la visualizzazione delle bandiere per la selezione lingua', 'dynamic-translator'),
+                'version' => '1.0.0',
+                'author' => 'Dynamic Translator',
+                'type' => 'display',
+                'file' => 'flag-display/flag-display.php',
+                'class' => 'DPT_Flag_Display_Module',
+                'requires' => array(),
+                'internal' => true,
+                'icon' => 'flags.svg'
+            ),
+            'seo-optimizer' => array(
+                'name' => __('SEO Optimizer', 'dynamic-translator'),
+                'description' => __('Ottimizza il SEO per contenuti multilingue', 'dynamic-translator'),
+                'version' => '1.0.0',
+                'author' => 'Dynamic Translator',
+                'type' => 'seo',
+                'file' => 'seo-optimizer/seo-optimizer.php',
+                'class' => 'DPT_SEO_Optimizer_Module',
+                'requires' => array(),
+                'internal' => true,
+                'icon' => 'seo.svg'
+            )
         );
         
-        $module_info = array();
-        
-        foreach ($default_headers as $field => $regex) {
-            if (preg_match('/\* ' . preg_quote($regex, '/') . ':(.*)$/mi', $content, $matches)) {
-                $module_info[$field] = trim($matches[1]);
+        foreach ($internal_modules as $module_id => $module_info) {
+            $module_file = $this->modules_path . $module_info['file'];
+            if (file_exists($module_file)) {
+                $this->modules[$module_id] = $module_info;
             }
         }
-        
-        // Ensure required fields are present
-        $required_fields = array('name', 'type', 'class');
-        foreach ($required_fields as $field) {
-            if (empty($module_info[$field])) {
-                return false;
-            }
-        }
-        
-        return $module_info;
     }
     
     /**
@@ -202,32 +165,15 @@ class DPT_Module_Manager {
     }
     
     /**
-     * Carica moduli attivi
+     * Carica moduli attivi - SENZA attivazione automatica
      */
     private function load_active_modules() {
         $active_modules = get_option('dpt_active_modules', array());
-        $this->debug_helper->log('Loading active modules: ' . implode(', ', $active_modules));
         
         foreach ($active_modules as $module_id) {
             if (isset($this->modules[$module_id])) {
-                try {
-                    // Carica il file del modulo
-                    $module_file = $this->modules[$module_id]['internal'] 
-                        ? $this->modules_path . $this->modules[$module_id]['file']
-                        : $this->modules[$module_id]['file'];
-                        
-                    if (file_exists($module_file)) {
-                        require_once $module_file;
-                        $this->debug_helper->log("Module file loaded: $module_file");
-                    } else {
-                        $this->debug_helper->log("Module file not found: $module_file", 'error');
-                    }
-                } catch (Exception $e) {
-                    error_log('Dynamic Translator - Errore caricamento modulo ' . $module_id . ': ' . $e->getMessage());
-                    $this->debug_helper->log("Error loading module $module_id: " . $e->getMessage(), 'error');
-                }
-            } else {
-                $this->debug_helper->log("Module $module_id not found in modules list", 'error');
+                // NON caricare automaticamente qui per evitare ricorsione
+                // Il caricamento avverrà tramite activate_default_modules
             }
         }
     }
@@ -312,7 +258,6 @@ class DPT_Module_Manager {
     public function activate_default_modules() {
         // Evita di attivarsi durante il caricamento iniziale
         if ($this->is_loading) {
-            $this->debug_helper->log('activate_default_modules skipped due to loading flag');
             return;
         }
         
@@ -328,7 +273,6 @@ class DPT_Module_Manager {
         
         foreach ($default_modules as $module_id) {
             if (!$this->is_module_active($module_id)) {
-                $this->debug_helper->log("Activating default module: $module_id");
                 $this->activate_module($module_id);
             }
         }
@@ -339,18 +283,15 @@ class DPT_Module_Manager {
      */
     public function activate_module($module_id) {
         if (!isset($this->modules[$module_id])) {
-            $this->debug_helper->log("activate_module failed: module $module_id not found", 'error');
             return new WP_Error('module_not_found', __('Modulo non trovato', 'dynamic-translator'));
         }
         
         if ($this->is_module_active($module_id)) {
-            $this->debug_helper->log("activate_module failed: module $module_id already active", 'error');
             return new WP_Error('module_already_active', __('Modulo già attivo', 'dynamic-translator'));
         }
         
         // Controlla dipendenze
         if (!$this->check_module_dependencies($this->modules[$module_id])) {
-            $this->debug_helper->log("activate_module failed: missing dependencies for $module_id", 'error');
             return new WP_Error('missing_dependencies', __('Dipendenze mancanti', 'dynamic-translator'));
         }
         
@@ -362,11 +303,10 @@ class DPT_Module_Manager {
             
             // Hook attivazione modulo
             do_action('dpt_module_activated', $module_id);
-            $this->debug_helper->log("Module activated: $module_id");
+            
             return true;
         }
         
-        $this->debug_helper->log("activate_module failed: activation failed for $module_id", 'error');
         return new WP_Error('activation_failed', __('Attivazione fallita', 'dynamic-translator'));
     }
     
@@ -436,13 +376,6 @@ class DPT_Module_Manager {
     public function register_module($module_id, $module_info) {
         if (isset($this->modules[$module_id])) {
             return new WP_Error('module_exists', __('Modulo già registrato', 'dynamic-translator'));
-        }
-        
-        // Se il modulo_info contiene un'istanza, è un modulo runtime
-        if (isset($module_info['instance'])) {
-            $this->active_modules[$module_id] = $module_info['instance'];
-            do_action('dpt_module_registered', $module_id, $module_info);
-            return true;
         }
         
         if (!$this->validate_module_info($module_info)) {
