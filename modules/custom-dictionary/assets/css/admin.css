@@ -1,0 +1,102 @@
+/**
+ * Custom Dictionary Admin CSS
+ */
+
+.dpt-dictionary-container {
+    margin-top: 20px;
+}
+
+.dpt-dictionary-main-settings,
+.dpt-dictionary-excluded-words,
+.dpt-dictionary-custom-translations {
+    background: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.dpt-dictionary-header {
+    margin-bottom: 20px;
+}
+
+.dpt-dictionary-actions {
+    margin-top: 20px;
+    padding: 15px 0;
+}
+
+/* Excluded Words */
+.dpt-add-excluded-word {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.dpt-add-excluded-word input {
+    flex: 1;
+}
+
+.dpt-excluded-words-list {
+    margin-top: 15px;
+}
+
+/* Custom Translations */
+.dpt-translation-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    align-items: flex-end;
+}
+
+.dpt-translation-field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.dpt-translation-field label {
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.dpt-translation-actions {
+    display: flex;
+    align-items: flex-end;
+}
+
+.dpt-custom-translations-list {
+    margin-top: 15px;
+}
+
+/* Tables */
+.dpt-actions-column {
+    width: 100px;
+    text-align: center;
+}
+
+.dpt-no-items td {
+    text-align: center;
+    padding: 15px;
+    font-style: italic;
+    color: #666;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+    .dpt-translation-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .dpt-translation-field {
+        width: 100%;
+    }
+    
+    .dpt-translation-actions {
+        width: 100%;
+    }
+    
+    .dpt-translation-actions button {
+        width: 100%;
+    }
+}
